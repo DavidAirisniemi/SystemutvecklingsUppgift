@@ -38,6 +38,7 @@ namespace IoTDevice
         public readonly string ConnectionIoTHub = "HostName=EnIoTHubYo.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=7U1loLASWut2RKvjqaCH5XIz92xPrP3R4+E8wokeiOM=";
         public readonly string ConnectionString = "Data Source=(LocalDB)\\MSSQLLocalDB;AttachDbFilename=C:\\Users\\David!\\Documents\\IotDb.mdf;Integrated Security=True;Connect Timeout=30";
 
+        private string device_ConnectionString = "";
         private DeviceClient deviceClient;
         private DeviceInfo deviceInfo;
         private bool LightState = false;
@@ -75,7 +76,7 @@ namespace IoTDevice
                 await connection.ExecuteAsync("Update DeviceInfo SET ConnectionString = @ConnectionString WHERE DeviceId = @DeviceId", new { DeviceId = deviceId, ConnectionString = device_ConnectionString });
             }
 
-            deviceClient = deviceClient.CreateFromConnectionString(device_ConnectionString);
+            deviceClient = DeviceClient.CreateFromConnectionString(device_ConnectionString);
 
             tbStateMessage.Text = "Updating Twin Properties. Please wait...";
 
@@ -88,7 +89,7 @@ namespace IoTDevice
             twinCollection["Location"] = deviceInfo.Location;
             twinCollection["LightState"] = LightState;
 
-            await deviceClient.UpdateReportedPropertiesAsync(TwinCollection);
+            await deviceClient.UpdateReportedPropertiesAsync(twinCollection);
 
             Connected = true;
             tbStateMessage.Text = "Device Connected";
@@ -116,7 +117,7 @@ namespace IoTDevice
 
                         var twinCollection = new TwinCollection();
                         twinCollection["LightState"] = LightState;
-                        await DeviceClient.UpdateReportedPropertiesAsync(twinCollection);
+                        await deviceClient.UpdateReportedPropertiesAsync(twinCollection);
                     }
                 }
                 await Task.Delay(Interval);
