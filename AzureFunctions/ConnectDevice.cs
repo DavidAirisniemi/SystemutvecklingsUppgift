@@ -22,14 +22,14 @@ namespace AzureFunctions
         {
             try
             {
-                using var registryManager = RegistryManager.CreateFromConnectionString(Environment.GetEnvironmentVariable("IoTHub"));
+                using var registryManager = RegistryManager.CreateFromConnectionString("HostName=EnIoTHubYo.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=7U1loLASWut2RKvjqaCH5XIz92xPrP3R4+E8wokeiOM=");
                 var device = await registryManager.GetDeviceAsync(req.Query["deviceId"]);
 
                 //    if null   do this
                 device ??= await registryManager.AddDeviceAsync(new Device(req.Query["deviceId"]));
 
 
-                return new OkObjectResult($"{Environment.GetEnvironmentVariable("IoTHub").Split(";")};DeviceId={device.Id};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}");
+                return new OkObjectResult($"{"HostName = EnIoTHubYo.azure - devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=7U1loLASWut2RKvjqaCH5XIz92xPrP3R4+E8wokeiOM=".Split(";")};DeviceId={device.Id};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}");
             }
             catch (Exception ex)
             {

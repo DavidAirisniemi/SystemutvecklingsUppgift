@@ -1,6 +1,15 @@
-﻿using System;
+﻿using Dapper;
+using IoTDevice.Models;
+using Microsoft.Azure.Devices.Client;
+using Microsoft.Azure.Devices.Shared;
+using Microsoft.Data.SqlClient;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -10,25 +19,17 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
-using Microsoft.Data.SqlClient;
-using Dapper;
-using System.Data;
-using Microsoft.IdentityModel.Tokens;
-using System.Net.Http;
-using System.Net.Http.Json;
-using Microsoft.Azure.Devices.Shared;
-using Newtonsoft.Json;
-using Microsoft.Azure.Devices.Client;
-using DotNetty.Transport.Channels;
-using IoTDevice.Models;
+using static Microsoft.Azure.Amqp.Serialization.SerializableType;
 
 namespace IoTDevice
 {
-    public partial class MainWindow : Window
+    /// <summary>
+    /// Interaction logic for Device.xaml
+    /// </summary>
+    public partial class Device : Window
     {
-        public int Id { get; set; } = 0;
+        public int DeviceId { get; set; } = 0;
         public string DeviceName = "OneDevice";
         public string DeviceOwner = "David";
         public string DeviceType = "LightStrip";
@@ -36,17 +37,19 @@ namespace IoTDevice
 
         public readonly string ConnectionUrl = "http://localhost:7071/api/devices/connect";
         public readonly string ConnectionIoTHub = "HostName=EnIoTHubYo.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=7U1loLASWut2RKvjqaCH5XIz92xPrP3R4+E8wokeiOM=";
-        public readonly string ConnectionString = "Data Source=(LocalDB)\\MSSQLLocalDB;AttachDbFilename=C:\\Users\\David!\\Documents\\IotDb.mdf;Integrated Security=True;Connect Timeout=30";
+        public readonly string ConnectionString = "Server=tcp:enserveryo.database.windows.net,1433;Initial Catalog=EnBankYo;Persist Security Info=False;User ID=Adminloginyo;Password=Lösenordyo1;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
 
         private string device_ConnectionString = "";
+
         private DeviceClient deviceClient;
         private DeviceInfo deviceInfo;
+
         private bool LightState = false;
         private bool LightPrevState = false;
         private bool Connected = false;
         private int Interval = 1000;
 
-        public MainWindow()
+        public Device()
         {
             InitializeComponent();
             Setup().ConfigureAwait(false);
@@ -62,8 +65,8 @@ namespace IoTDevice
             if (string.IsNullOrEmpty(deviceId))
             {
                 tbStateMessage.Text = "Generating new DeviceId";
-                deviceId = Guid.NewGuid().ToString();
-                await connection.ExecuteAsync("INSERT INTO DeviceInfo (DeviceId, DeviceName, DeviceType, Location, Owner) VALUES (@DeviceId, @DeviceName, @DeviceType, @Location, @Owner)", new { DeviceId = deviceId, DeviceName = "One Device", DeviceType = "Lightstrip", Location = "Bedroom", Owner = "David" }); ;
+                
+                await connection.ExecuteAsync("INSERT INTO DeviceInfo (DeviceId, DeviceName, DeviceType, Location, Owner) VALUES (@DeviceId, @DeviceName, @DeviceType, @Location, @Owner)", new { DeviceId = DeviceId, DeviceName = "One Device", DeviceType = "Lightstrip", Location = "Bedroom", Owner = "David" }); ;
             }
 
             var deviceConnectionDb = await connection.QueryFirstOrDefaultAsync<string>("SELECT ConnectionString FROM DeviceInfo WHERE DeviceId = @DeviceId", new { DeviceId = deviceId });
@@ -71,22 +74,22 @@ namespace IoTDevice
             {
                 tbStateMessage.Text = "Initializing ConnectionString. Please wait...";
                 using var http = new HttpClient();
-                var result = await http.PostAsJsonAsync(Environment.GetEnvironmentVariable("ConnectionUrl"), new { DeviceId = deviceId});
+                var result = await http.PostAsJsonAsync($"{ConnectionUrl}?deviceId={deviceId}", new { deviceId = deviceId });
                 device_ConnectionString = await result.Content.ReadAsStringAsync();
                 await connection.ExecuteAsync("Update DeviceInfo SET ConnectionString = @ConnectionString WHERE DeviceId = @DeviceId", new { DeviceId = deviceId, ConnectionString = device_ConnectionString });
             }
 
-            deviceClient = DeviceClient.CreateFromConnectionString(device_ConnectionString);
+            deviceClient = DeviceClient.CreateFromConnectionString(ConnectionIoTHub, DeviceId.ToString());
 
             tbStateMessage.Text = "Updating Twin Properties. Please wait...";
 
             deviceInfo = await connection.QueryFirstOrDefaultAsync<DeviceInfo>("SELECT * FROM DeviceInfo WHERE DeviceId = @DeviceId", new { DeviceId = deviceId });
 
             var twinCollection = new TwinCollection();
-            twinCollection["deviceName"] = deviceInfo.DeviceName;
-            twinCollection["deviceOwner"] = deviceInfo.Owner;
-            twinCollection["deviceType"] = deviceInfo.DeviceType;
-            twinCollection["Location"] = deviceInfo.Location;
+            twinCollection["deviceName"] = DeviceName;
+            twinCollection["deviceOwner"] = Owner;
+            twinCollection["deviceType"] = DeviceType;
+            twinCollection["Location"] = Location;
             twinCollection["LightState"] = LightState;
 
             await deviceClient.UpdateReportedPropertiesAsync(twinCollection);
@@ -107,10 +110,6 @@ namespace IoTDevice
 
                         var json = JsonConvert.SerializeObject(new { lightState = LightState });
                         var message = new Message(Encoding.UTF8.GetBytes(json));
-                        message.Properties.Add("DeviceName", deviceInfo.DeviceName);
-                        message.Properties.Add("deviceOwner", deviceInfo.Owner);
-                        message.Properties.Add("deviceType", deviceInfo.DeviceType);
-                        message.Properties.Add("Location", deviceInfo.Location);
 
                         await deviceClient.SendEventAsync(message);
                         tbStateMessage.Text = $"Message sent at {DateTime.Now}.";
