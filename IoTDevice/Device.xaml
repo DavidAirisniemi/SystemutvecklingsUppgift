@@ -8,6 +8,6 @@
         Title="Device" Height="450" Width="800">
     <Grid>
         <TextBlock x:Name="tbStateMessage"></TextBlock>
-        <Button x:Name="btnOnOff" Click="btnOnOffClick" Width="100" Height="25"></Button>
+        <Button x:Name="btnOnOff" Click="btnOnOffClick" Width="100" Height="25" Content="Turn On"></Button>
     </Grid>
 </Window>

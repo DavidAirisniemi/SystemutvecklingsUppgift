@@ -20,6 +20,27 @@ namespace IoTAdminApp.Components
     /// </summary>
     public partial class DeviceTile : UserControl
     {
+        public static readonly DependencyProperty IdProperty = DependencyProperty.Register("Id", typeof(string), typeof(DeviceTile));
+        public string Id
+        {
+            get { return (string)GetValue(IdProperty); }
+            set { SetValue(IdProperty, value); }
+        }
+
+        public static readonly DependencyProperty DeviceNameProperty = DependencyProperty.Register("DeviceName", typeof(string), typeof(DeviceTile));
+        public string DeviceName
+        {
+            get { return (string)GetValue(DeviceNameProperty); }
+            set { SetValue(DeviceNameProperty, value); }
+        }
+
+        public static readonly DependencyProperty LocationProperty = DependencyProperty.Register("Location", typeof(string), typeof(DeviceTile));
+        public string Location
+        {
+            get { return (string)GetValue(LocationProperty); }
+            set { SetValue(LocationProperty, value); }
+        }
+
         public DeviceTile()
         {
             InitializeComponent();

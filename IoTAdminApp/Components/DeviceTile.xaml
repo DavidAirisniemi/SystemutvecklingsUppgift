@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:IoTAdminApp.Components"
              mc:Ignorable="d" 
+             x:Name="deviceTile"
              >
     <Border Style="{StaticResource TileBorder}">
         <Grid>
@@ -19,9 +20,9 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="LightX"  Style="{StaticResource DeviceTileTitle}"/>
+                <TextBlock Grid.Row="0" Text="{Binding ElementName=deviceTile, Path=DeviceName}"  Style="{StaticResource DeviceTileTitle}"/>
 
-                <TextBlock Grid.Row="1" Text="LightStrip" Style="{StaticResource DeviceTileTitle}" />
+                <TextBlock Grid.Row="1" Text="{Binding ElementName=deviceTile, Path=Location}" Style="{StaticResource DeviceTileTitle}" />
             </Grid>
 
             <TextBlock Grid.Row="1" x:Name="DeviceIcon" Text="&#xf0eb;" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource DeviceTileIcon}"></TextBlock>

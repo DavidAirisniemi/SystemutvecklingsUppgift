@@ -29,4 +29,8 @@
     <Folder Include="MVVM\Models\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.38.1" />
+  </ItemGroup>
+
 </Project>
