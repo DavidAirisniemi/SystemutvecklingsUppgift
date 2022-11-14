@@ -22,13 +22,26 @@ namespace IoTAdminApp.MVVM.ViewModels
 
         public async Task AddDeviceItems()
         {
-            await Task.Delay(1000);
-            _deviceItems = await GetDevicesAsync();
+            var result = await GetDevicesAsync();
+
+            result.ForEach(device =>
+            {
+                var item = _deviceItems?.FirstOrDefault(x => x.Id == device.Id);
+                if (item == null)
+                {
+                    _deviceItems?.Add(device);
+                }
+                else
+                {
+                    var index = _deviceItems!.IndexOf(item);
+                    _deviceItems[index] = device;
+                }
+            });
         }
 
-        public async Task<ObservableCollection<DeviceModel>> GetDevicesAsync()
+        public async Task<List<DeviceModel>> GetDevicesAsync()
         {
-            var devices = new ObservableCollection<DeviceModel>();
+            var devices = new List<DeviceModel>();
 
             try
             {
