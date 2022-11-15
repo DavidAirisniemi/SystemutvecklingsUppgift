@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 
 namespace IoTAdminApp.MVVM.ViewModels
 {
@@ -13,11 +14,43 @@ namespace IoTAdminApp.MVVM.ViewModels
     {
         public IEnumerable<DeviceModel> DeviceItems => _deviceItems;
         private ObservableCollection<DeviceModel> _deviceItems;
+        private DispatcherTimer _timer;
 
         public BedroomViewModel()
         {
             _deviceItems = new ObservableCollection<DeviceModel>();
             AddDeviceItems().ConfigureAwait(false);
+            SetTimer(TimeSpan.FromSeconds(10));
+        }
+
+        private void SetTimer(TimeSpan interval)
+        {
+            _timer = new DispatcherTimer()
+            {
+                Interval = interval
+            };
+            _timer.Tick += new EventHandler(timer_tick);
+            _timer.Start();
+        }
+
+        private async void timer_tick(object? sender, EventArgs e)
+        {
+            await AddDeviceItems();
+
+            var removeList = new List<DeviceModel>();
+            using var registryManager = RegistryManager.CreateFromConnectionString("HostName=EnIoTHubYo.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=7U1loLASWut2RKvjqaCH5XIz92xPrP3R4+E8wokeiOM=");
+            foreach (var item in _deviceItems)
+            {
+                var device = await registryManager.GetDeviceAsync(item.Id);
+                if (device == null)
+                    removeList.Add(item);
+            }
+
+            foreach (var device in removeList)
+            {
+                _deviceItems.Remove(device);
+            }
+
         }
 
         public async Task AddDeviceItems()

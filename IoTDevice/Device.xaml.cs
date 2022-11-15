@@ -2,25 +2,15 @@
 using IoTDevice.Models;
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Azure.Devices.Shared;
-using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
+using System.Data.SqlClient;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using static Microsoft.Azure.Amqp.Serialization.SerializableType;
 
 namespace IoTDevice
 {
@@ -74,7 +64,7 @@ namespace IoTDevice
             {
                 tbStateMessage.Text = "Initializing ConnectionString. Please wait...";
                 using var http = new HttpClient();
-                var result = await http.PostAsJsonAsync($"{ConnectionUrl}?deviceId={deviceId}", new { deviceId = deviceId });
+                var result = await http.PostAsJsonAsync($"{ConnectionUrl}?deviceId={DeviceId}", new { DeviceId = DeviceId });
                 device_ConnectionString = await result.Content.ReadAsStringAsync();
                 await connection.ExecuteAsync("Update DeviceInfo SET ConnectionString = @ConnectionString WHERE DeviceId = @DeviceId", new { DeviceId = deviceId, ConnectionString = device_ConnectionString });
             }
@@ -87,12 +77,16 @@ namespace IoTDevice
 
             var twinCollection = new TwinCollection();
             twinCollection["deviceName"] = DeviceName;
-            twinCollection["deviceOwner"] = Owner;
+            twinCollection["deviceOwner"] = DeviceOwner;
             twinCollection["deviceType"] = DeviceType;
             twinCollection["Location"] = Location;
             twinCollection["LightState"] = LightState;
 
             await deviceClient.UpdateReportedPropertiesAsync(twinCollection);
+
+            await deviceClient.SetMethodHandlerAsync("ChangeLightstate", ChangeLightStateDirectMethod, null);
+
+            await deviceClient.SetMethodHandlerAsync("DeleteDevice", DeleteDevice, null);
 
             Connected = true;
             tbStateMessage.Text = "Device Connected";
@@ -113,24 +107,46 @@ namespace IoTDevice
 
                         await deviceClient.SendEventAsync(message);
                         tbStateMessage.Text = $"Message sent at {DateTime.Now}.";
-
-                        var twinCollection = new TwinCollection();
-                        twinCollection["LightState"] = LightState;
-                        await deviceClient.UpdateReportedPropertiesAsync(twinCollection);
                     }
                 }
                 await Task.Delay(Interval);
             }
         }
 
-        private void btnOnOffClick(object sender, RoutedEventArgs e)
+        public Task<MethodResponse> ChangeLightStateDirectMethod(MethodRequest methodRequest, object userContext)
         {
-            LightState = !LightState;
+             ChangeOnOffStateAsync().ConfigureAwait(false);
+
+            return Task.FromResult(new MethodResponse(new byte[0], 200));
+        }
+
+        private async void btnOnOffClick(object sender, RoutedEventArgs e)
+        {
+            await ChangeOnOffStateAsync();
 
             if (LightState)
                 btnOnOff.Content = "Turn Off";
             else
                 btnOnOff.Content = "Turn On";
+        }
+
+        private async Task ChangeOnOffStateAsync()
+        {
+            LightState = !LightState;
+
+            var twinCollection = new TwinCollection();
+            twinCollection["LightState"] = LightState;
+
+            await deviceClient.UpdateReportedPropertiesAsync(twinCollection);
+            
+        }
+
+        public async Task<MethodResponse> DeleteDevice(MethodRequest methodRequest, object userContext)
+        {
+            await Task.Delay(10000);
+            Environment.Exit(0);
+
+            return null;
         }
     }
 }

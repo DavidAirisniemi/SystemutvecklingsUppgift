@@ -35,6 +35,9 @@
 
                 <CheckBox Grid.Column="1" x:Name="OnOffSwitch" Click="OnOffSwitch_Click"
                           Style="{StaticResource DeviceTileOnOffSwitch}"/>
+
+                <Button x:Name="DeleteDevice" Content="Delete" Click="DeleteDevice_Click"></Button>
+                        
             </Grid>
 
         </Grid>
